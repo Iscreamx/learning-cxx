@@ -1,4 +1,5 @@
 ﻿#include "../exercise.h"
+#include <cstring>
 
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
@@ -10,8 +11,15 @@ struct Tensor4D {
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+        shape[0] = shape_[0];
+        shape[1] = shape_[1];
+        shape[2] = shape_[2];
+        shape[3] = shape_[3];
+        for (int i = 0; i < 4; i++) {
+            size *= shape[i];
+        }
         data = new T[size];
-        std::memcpy(data, data_, size * sizeof(T));
+        memcpy(data, data_, size * sizeof(T));
     }
     ~Tensor4D() {
         delete[] data;
@@ -27,7 +35,29 @@ struct Tensor4D {
     // 例如，`this` 形状为 `[1, 2, 3, 4]`，`others` 形状为 `[1, 2, 1, 4]`，
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
-        // TODO: 实现单向广播的加法
+        // 检查形状兼容性
+        for (int dim = 0; dim < 4; ++dim) {
+            if (others.shape[dim] != 1 && others.shape[dim] != shape[dim]) {
+                throw std::invalid_argument("Shapes are not compatible for broadcasting");
+            }
+        }
+
+        // 遍历 `this` 的每个元素并进行加法
+        for (unsigned int i = 0; i < shape[0]; ++i) {
+            for (unsigned int j = 0; j < shape[1]; ++j) {
+                for (unsigned int k = 0; k < shape[2]; ++k) {
+                    for (unsigned int l = 0; l < shape[3]; ++l) {
+                        // 根据 `others` 的形状进行广播
+                        unsigned int oi = (others.shape[0] == 1) ? 0 : i;
+                        unsigned int oj = (others.shape[1] == 1) ? 0 : j;
+                        unsigned int ok = (others.shape[2] == 1) ? 0 : k;
+                        unsigned int ol = (others.shape[3] == 1) ? 0 : l;
+                        data[i * shape[1] * shape[2] * shape[3] + j * shape[2] * shape[3] + k * shape[3] + l] +=
+                            others.data[oi * others.shape[1] * others.shape[2] * others.shape[3] + oj * others.shape[2] * others.shape[3] + ok * others.shape[3] + ol];
+                    }
+                }
+            }
+        }
         return *this;
     }
 };
